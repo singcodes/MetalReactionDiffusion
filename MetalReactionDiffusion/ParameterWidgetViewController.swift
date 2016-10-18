@@ -10,11 +10,11 @@ import UIKit
 
 class ParameterWidgetViewController: UIViewController {
 
-    let slider = UISlider(frame: CGRectZero)
+    let slider = UISlider(frame: CGRect.zero)
     
     override func viewDidLoad()
     {
-        if let prefWidth = UIApplication.sharedApplication().keyWindow?.layer.frame.width
+        if let prefWidth = UIApplication.shared.keyWindow?.layer.frame.width
         {
             preferredContentSize = CGSize(width: prefWidth - 10, height: 55)
         }

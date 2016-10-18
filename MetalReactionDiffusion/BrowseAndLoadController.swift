@@ -13,8 +13,8 @@ class BrowseAndLoadController: UIViewController, UICollectionViewDataSource, UIC
     var collectionViewWidget: UICollectionView!
     var selectedEntity: ReactionDiffusionEntity?
     let blurOverlay = UIVisualEffectView(effect: UIBlurEffect())
-    let showDeletedSwitch = UISwitch(frame: CGRectZero)
-    let showDeletedLabel = UILabel(frame: CGRectZero)
+    let showDeletedSwitch = UISwitch(frame: CGRect.zero)
+    let showDeletedLabel = UILabel(frame: CGRect.zero)
     
     var dataprovider: [ReactionDiffusionEntity] = [ReactionDiffusionEntity]()
     
@@ -22,7 +22,7 @@ class BrowseAndLoadController: UIViewController, UICollectionViewDataSource, UIC
     {
         didSet
         {
-            if let _collectionView = collectionViewWidget
+            if (collectionViewWidget) != nil
             {
                 populateDataProvider()
             }
@@ -39,7 +39,7 @@ class BrowseAndLoadController: UIViewController, UICollectionViewDataSource, UIC
     
     func populateDataProvider()
     {
-        func populateDataProvider_2(value: Bool)
+        func populateDataProvider_2(_ value: Bool)
         {
             if let _collectionView = collectionViewWidget
             {
@@ -55,10 +55,10 @@ class BrowseAndLoadController: UIViewController, UICollectionViewDataSource, UIC
                 _collectionView.reloadData()
             }
             
-            UIView.animateWithDuration(0.125, animations: {self.collectionViewWidget.alpha = 1})
+            UIView.animate(withDuration: 0.125, animations: {self.collectionViewWidget.alpha = 1})
         }
         
-        UIView.animateWithDuration(0.125, animations: {self.collectionViewWidget.alpha = 0}, completion: populateDataProvider_2)
+        UIView.animate(withDuration: 0.125, animations: {self.collectionViewWidget.alpha = 0}, completion: populateDataProvider_2)
     }
     
     override func viewDidLoad()
@@ -66,26 +66,26 @@ class BrowseAndLoadController: UIViewController, UICollectionViewDataSource, UIC
         selectedEntity = nil
         
         let layout = UICollectionViewFlowLayout()
-        layout.scrollDirection = .Vertical
+        layout.scrollDirection = .vertical
         layout.itemSize = CGSize(width: 150, height: 150)
         layout.minimumLineSpacing = 30
         layout.sectionInset = UIEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
         
-        collectionViewWidget = UICollectionView(frame: CGRectZero, collectionViewLayout: layout)
+        collectionViewWidget = UICollectionView(frame: CGRect.zero, collectionViewLayout: layout)
         
-        collectionViewWidget.backgroundColor = UIColor.clearColor()
+        collectionViewWidget.backgroundColor = UIColor.clear
         
         collectionViewWidget.delegate = self
         collectionViewWidget.dataSource = self
-        collectionViewWidget.registerClass(ReactionDiffusionEntityRenderer.self, forCellWithReuseIdentifier: "Cell")
+        collectionViewWidget.register(ReactionDiffusionEntityRenderer.self, forCellWithReuseIdentifier: "Cell")
         collectionViewWidget.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 20, right: 0)
         
-        showDeletedSwitch.tintColor = UIColor.darkGrayColor()
-        showDeletedSwitch.addTarget(self, action: "showDeletedToggle", forControlEvents: UIControlEvents.ValueChanged)
+        showDeletedSwitch.tintColor = UIColor.darkGray
+        showDeletedSwitch.addTarget(self, action: #selector(BrowseAndLoadController.showDeletedToggle), for: UIControlEvents.valueChanged)
         showDeletedSwitch.setOn(showDeleted, animated: false)
         showDeletedLabel.text = "Show recently deleted"
         
-        let longPress = UILongPressGestureRecognizer(target: self, action: "longPressHandler:")
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(BrowseAndLoadController.longPressHandler(_:)))
         collectionViewWidget.addGestureRecognizer(longPress)
         
         view.addSubview(collectionViewWidget)
@@ -94,77 +94,79 @@ class BrowseAndLoadController: UIViewController, UICollectionViewDataSource, UIC
         view.addSubview(showDeletedLabel)
     }
     
-    var longPressTarget: (cell: UICollectionViewCell, indexPath: NSIndexPath)?
+    var longPressTarget: (cell: UICollectionViewCell, indexPath: IndexPath)?
     
     func showDeletedToggle()
     {
-        showDeleted = showDeletedSwitch.on
+        showDeleted = showDeletedSwitch.isOn
     }
     
-    func longPressHandler(recognizer: UILongPressGestureRecognizer)
+    func longPressHandler(_ recognizer: UILongPressGestureRecognizer)
     {
-        if recognizer.state == UIGestureRecognizerState.Began
+        if recognizer.state == UIGestureRecognizerState.began
         {
             if let _longPressTarget = longPressTarget
             {
-                let entity = dataprovider[_longPressTarget.indexPath.item]
+                let entity = dataprovider[(_longPressTarget.indexPath as NSIndexPath).item]
                 
-                let contextMenuController = UIAlertController(title: nil, message: nil, preferredStyle: UIAlertControllerStyle.ActionSheet)
-                let deleteAction = UIAlertAction(title: entity.pendingDelete ? "Undelete" : "Delete", style: UIAlertActionStyle.Default, handler: togglePendingDelete)
+                let contextMenuController = UIAlertController(title: nil, message: nil, preferredStyle: UIAlertControllerStyle.actionSheet)
+                let deleteAction = UIAlertAction(title: entity.pendingDelete ? "Undelete" : "Delete", style: UIAlertActionStyle.default, handler: togglePendingDelete)
                 
                 contextMenuController.addAction(deleteAction)
                 
                 if let popoverPresentationController = contextMenuController.popoverPresentationController
                 {
-                    popoverPresentationController.permittedArrowDirections = UIPopoverArrowDirection.Down
-                    popoverPresentationController.sourceRect = _longPressTarget.cell.frame.rectByOffsetting(dx: collectionViewWidget.frame.origin.x, dy: collectionViewWidget.frame.origin.y - collectionViewWidget.contentOffset.y)
+                    popoverPresentationController.permittedArrowDirections = UIPopoverArrowDirection.down
+                    popoverPresentationController.sourceRect = _longPressTarget.cell.frame.offsetBy(dx: collectionViewWidget.frame.origin.x, dy: collectionViewWidget.frame.origin.y - collectionViewWidget.contentOffset.y)
                     popoverPresentationController.sourceView = view
                     
-                    presentViewController(contextMenuController, animated: true, completion: nil)
+                    present(contextMenuController, animated: true, completion: nil)
                 }
             }
         }
     }
     
-    func togglePendingDelete(value: UIAlertAction!) -> Void
+    func togglePendingDelete(_ value: UIAlertAction!) -> Void
     {
         if let _longPressTarget = longPressTarget
         {
-            let targetEntity = dataprovider[_longPressTarget.indexPath.item]
+            let targetEntity = dataprovider[(_longPressTarget.indexPath as NSIndexPath).item]
             
             targetEntity.pendingDelete = !targetEntity.pendingDelete
             
             if showDeleted
             {
                 // if we're displaying peniding deletes....
-                collectionViewWidget.reloadItemsAtIndexPaths([_longPressTarget.indexPath])
+                collectionViewWidget.reloadItems(at: [_longPressTarget.indexPath])
             }
             else
             {
                 // if we're deleting
                 if targetEntity.pendingDelete
                 {
-                    let targetEntityIndex = find(dataprovider, targetEntity)
-                    dataprovider.removeAtIndex(targetEntityIndex!)
-                    collectionViewWidget.deleteItemsAtIndexPaths([_longPressTarget.indexPath])
+                    guard let targetEntityIndex = dataprovider.index(of: targetEntity) else {
+                        return
+                    }// find(dataprovider, targetEntity)
+                    dataprovider.remove(at: targetEntityIndex)
+                    collectionViewWidget.deleteItems(at: [_longPressTarget.indexPath])
                 }
             }
         }
     }
     
-    func collectionView(collectionView: UICollectionView, didHighlightItemAtIndexPath indexPath: NSIndexPath)
+    func collectionView(_ collectionView: UICollectionView, didHighlightItemAt indexPath: IndexPath)
     {
-        longPressTarget = (cell: self.collectionView(collectionViewWidget, cellForItemAtIndexPath: indexPath), indexPath: indexPath)
+        longPressTarget = (cell: self.collectionView(collectionViewWidget, cellForItemAt: indexPath), indexPath: indexPath)
     }
     
-    func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int
     {
         return dataprovider.count
     }
     
-    func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath)
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath)
     {
-        selectedEntity = dataprovider[indexPath.item]
+        selectedEntity = dataprovider[(indexPath as NSIndexPath).item]
  
         if let _popoverPresentationController = popoverPresentationController
         {
@@ -174,29 +176,29 @@ class BrowseAndLoadController: UIViewController, UICollectionViewDataSource, UIC
             }
         }
         
-        dismissViewControllerAnimated(true, completion: nil)
+        dismiss(animated: true, completion: nil)
         
     }
     
-    func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell
     {
-        let cell = collectionView.dequeueReusableCellWithReuseIdentifier("Cell", forIndexPath: indexPath) as! ReactionDiffusionEntityRenderer
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell", for: indexPath) as! ReactionDiffusionEntityRenderer
         
-        cell.reactionDiffusionEntity = dataprovider[indexPath.item]
+        cell.reactionDiffusionEntity = dataprovider[(indexPath as NSIndexPath).item]
         
         return cell
     }
     
     override func viewDidLayoutSubviews()
     {
-        collectionViewWidget.frame = view.bounds.rectByInsetting(dx: 10, dy: 10)
+        collectionViewWidget.frame = view.bounds.insetBy(dx: 10, dy: 10)
         
         blurOverlay.frame = CGRect(x: 0, y: view.frame.height - 40, width: view.frame.width, height: 40)
 
         let showDeletedOffset = (40.0 - showDeletedSwitch.frame.height) / 2
-        showDeletedSwitch.frame = blurOverlay.frame.rectByInsetting(dx: showDeletedOffset, dy: showDeletedOffset)
+        showDeletedSwitch.frame = blurOverlay.frame.insetBy(dx: showDeletedOffset, dy: showDeletedOffset)
         
-        showDeletedLabel.frame = blurOverlay.frame.rectByInsetting(dx: showDeletedSwitch.frame.width + showDeletedOffset + 5, dy: 0)
+        showDeletedLabel.frame = blurOverlay.frame.insetBy(dx: showDeletedSwitch.frame.width + showDeletedOffset + 5, dy: 0)
         
         collectionViewWidget.reloadData()
     }
@@ -205,8 +207,8 @@ class BrowseAndLoadController: UIViewController, UICollectionViewDataSource, UIC
 
 class ReactionDiffusionEntityRenderer: UICollectionViewCell
 {
-    let label = UILabel(frame: CGRectZero)
-    let imageView = UIImageView(frame: CGRectZero)
+    let label = UILabel(frame: CGRect.zero)
+    let imageView = UIImageView(frame: CGRect.zero)
     let blurOverlay = UIVisualEffectView(effect: UIBlurEffect())
     
     override init(frame: CGRect)
@@ -219,9 +221,9 @@ class ReactionDiffusionEntityRenderer: UICollectionViewCell
         label.numberOfLines = 0
         label.frame = CGRect(x: 0, y: frame.height - 20, width: frame.width, height: 20)
         label.adjustsFontSizeToFitWidth = true
-        label.textAlignment = NSTextAlignment.Center
+        label.textAlignment = NSTextAlignment.center
 
-        imageView.frame = bounds.rectByInsetting(dx: 0, dy: 0)
+        imageView.frame = bounds.insetBy(dx: 0, dy: 0)
         
         blurOverlay.frame = CGRect(x: 0, y: frame.height - 20, width: frame.width, height: 20)
         
@@ -229,7 +231,7 @@ class ReactionDiffusionEntityRenderer: UICollectionViewCell
         contentView.addSubview(blurOverlay)
         contentView.addSubview(label)
         
-        layer.shadowColor = UIColor.blackColor().CGColor
+        layer.shadowColor = UIColor.black.cgColor
         layer.shadowOffset = CGSize(width: 0, height: 0)
         layer.shadowOpacity = 1
     }
@@ -249,7 +251,7 @@ class ReactionDiffusionEntityRenderer: UICollectionViewCell
 
                 label.text = _reactionDiffusionEntity.model
             
-                let thumbnail = UIImage(data: _reactionDiffusionEntity.imageData as NSData)
+                let thumbnail = UIImage(data: _reactionDiffusionEntity.imageData as Data)
             
                 imageView.image = thumbnail
             }

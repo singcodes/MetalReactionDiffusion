@@ -14,35 +14,35 @@ import CoreData
 class AppDelegate: UIResponder, UIApplicationDelegate {
     
     var window: UIWindow?
-
-    func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool
+    
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool
     {
-        let existingUser = NSUserDefaults.standardUserDefaults().boolForKey("existingUser") as Bool
+        let existingUser = UserDefaults.standard.bool(forKey: "existingUser") as Bool
         
         if !existingUser
         {
             if let _managedObjectContext = managedObjectContext
             {
                 let presets:[ReactionDiffusion] = [Worms(), Spots(), SpottyBifurcation(), Strings(), Bifurcation(),Liquid(), ExcitedLines(), SpiralCoral()]
-
+                
                 let presetImage = UIImage(named: "preset.jpg")
                 
                 for preset in presets
                 {
-                    ReactionDiffusionEntity.createInManagedObjectContext(_managedObjectContext, model: preset.model.rawValue, reactionDiffusionStruct: preset.reactionDiffusionStruct, image: presetImage!)
+                    let _ = ReactionDiffusionEntity.createInManagedObjectContext(_managedObjectContext, model: preset.model.rawValue, reactionDiffusionStruct: preset.reactionDiffusionStruct, image: presetImage!)
                     
                     self.saveContext()
                 }
             }
         }
         
-
-        NSUserDefaults.standardUserDefaults().setBool(true, forKey: "existingUser")
+        
+        UserDefaults.standard.set(true, forKey: "existingUser")
         
         return true
     }
     
-    func applicationWillResignActive(application: UIApplication)
+    func applicationWillResignActive(_ application: UIApplication)
     {
         if let viewController = window?.rootViewController as? ViewController
         {
@@ -50,16 +50,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
     }
     
-    func applicationDidEnterBackground(application: UIApplication)
+    func applicationDidEnterBackground(_ application: UIApplication)
     {
         deleteItemsPendingDelete()
     }
     
-    func applicationWillEnterForeground(application: UIApplication)
+    func applicationWillEnterForeground(_ application: UIApplication)
     {
     }
     
-    func applicationDidBecomeActive(application: UIApplication)
+    func applicationDidBecomeActive(_ application: UIApplication)
     {
         if let viewController = window?.rootViewController as? ViewController
         {
@@ -69,7 +69,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
     }
     
-    func applicationWillTerminate(application: UIApplication)
+    func applicationWillTerminate(_ application: UIApplication)
     {
         deleteItemsPendingDelete()
     }
@@ -77,11 +77,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func loadAutoSaved()
     {
         var autoSavedFound: Bool = false
-        let fetchRequest = NSFetchRequest(entityName: "ReactionDiffusionEntity")
+        
+        let fetchRequest = NSFetchRequest<ReactionDiffusionEntity>(entityName: "ReactionDiffusionEntity")
         
         if let _managedObjectContext = managedObjectContext
         {
-            if let fetchResults = _managedObjectContext.executeFetchRequest(fetchRequest, error: nil) as? [ReactionDiffusionEntity]
+            if let fetchResults = try? _managedObjectContext.fetch(fetchRequest)
             {
                 for entity in fetchResults
                 {
@@ -94,7 +95,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                             autoSavedFound = true
                         }
                         
-                        _managedObjectContext.deleteObject(entity)
+                        _managedObjectContext.delete(entity)
                     }
                 }
             }
@@ -119,17 +120,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func deleteItemsPendingDelete()
     {
-        let fetchRequest = NSFetchRequest(entityName: "ReactionDiffusionEntity")
+        let fetchRequest = NSFetchRequest<ReactionDiffusionEntity>(entityName: "ReactionDiffusionEntity")
         
         if let _managedObjectContext = managedObjectContext
         {
-            if let fetchResults = _managedObjectContext.executeFetchRequest(fetchRequest, error: nil) as? [ReactionDiffusionEntity]
+            if let fetchResults = try? _managedObjectContext.fetch(fetchRequest)
             {
                 for entity in fetchResults
                 {
                     if entity.pendingDelete
                     {
-                        _managedObjectContext.deleteObject(entity)
+                        _managedObjectContext.delete(entity)
                     }
                 }
             }
@@ -138,50 +139,65 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             
             if let viewController = window?.rootViewController as? ViewController
             {
-                var newEntity = ReactionDiffusionEntity.createInManagedObjectContext(_managedObjectContext, model: viewController.reactionDiffusionModel.model.rawValue, reactionDiffusionStruct: viewController.reactionDiffusionModel.reactionDiffusionStruct, image: viewController.imageView.image!, autoSaved: true)
+                let _ = ReactionDiffusionEntity.createInManagedObjectContext(_managedObjectContext, model: viewController.reactionDiffusionModel.model.rawValue, reactionDiffusionStruct: viewController.reactionDiffusionModel.reactionDiffusionStruct, image: viewController.imageView.image!, autoSaved: true)
             }
         }
- 
+        
         self.saveContext()
     }
     
     // MARK: - Core Data stack
     
-    lazy var applicationDocumentsDirectory: NSURL = {
+    lazy var applicationDocumentsDirectory: URL = {
         // The directory the application uses to store the Core Data store file. This code uses a directory named "uk.co.flexmonkey.MetalReactionDiffusion" in the application's documents Application Support directory.
-        let urls = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)
-        return urls[urls.count-1] as! NSURL
-        }()
+        let urls = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        return urls[urls.count-1]
+    }()
     
     lazy var managedObjectModel: NSManagedObjectModel = {
         // The managed object model for the application. This property is not optional. It is a fatal error for the application not to be able to find and load its model.
-        let modelURL = NSBundle.mainBundle().URLForResource("ReDiLab", withExtension: "momd")!
-        return NSManagedObjectModel(contentsOfURL: modelURL)!
-        }()
+        let modelURL = Bundle.main.url(forResource: "ReDiLab", withExtension: "momd")!
+        return NSManagedObjectModel(contentsOf: modelURL)!
+    }()
     
     lazy var persistentStoreCoordinator: NSPersistentStoreCoordinator? = {
         // The persistent store coordinator for the application. This implementation creates and return a coordinator, having added the store for the application to it. This property is optional since there are legitimate error conditions that could cause the creation of the store to fail.
         // Create the coordinator and store
-        var coordinator: NSPersistentStoreCoordinator? = NSPersistentStoreCoordinator(managedObjectModel: self.managedObjectModel)
-        let url = self.applicationDocumentsDirectory.URLByAppendingPathComponent("ReDiLab.sqlite")
+        let coordinator: NSPersistentStoreCoordinator = NSPersistentStoreCoordinator(managedObjectModel: self.managedObjectModel)
+        let url = self.applicationDocumentsDirectory.appendingPathComponent("ReDiLab.sqlite")
         var error: NSError? = nil
         var failureReason = "There was an error creating or loading the application's saved data."
-        if coordinator!.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: nil, error: &error) == nil {
-            coordinator = nil
+        //TODO: - add coordinator
+        guard let store = try? coordinator.addPersistentStore(ofType: NSSQLiteStoreType, configurationName: nil, at: url, options: nil) else {
             // Report any error we got.
-            let dict = NSMutableDictionary()
+            var dict: [AnyHashable : Any] = [:]
             dict[NSLocalizedDescriptionKey] = "Failed to initialize the application's saved data"
             dict[NSLocalizedFailureReasonErrorKey] = failureReason
             dict[NSUnderlyingErrorKey] = error
-            error = NSError(domain: "YOUR_ERROR_DOMAIN", code: 9999, userInfo: dict as [NSObject : AnyObject])
+            error = NSError(domain: "YOUR_ERROR_DOMAIN", code: 9999, userInfo: dict as [AnyHashable: Any])
             // Replace this with code to handle the error appropriately.
             // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
             NSLog("Unresolved error \(error), \(error!.userInfo)")
-            abort()
+
+            assertionFailure()
+            return nil
         }
+        //        if nil == try? coordinator.addPersistentStore(ofType: NSSQLiteStoreType, configurationName: nil, at: url, options: nil) ?? nil {
+//                    coordinator = nil
+//                    // Report any error we got.
+//                    let dict = NSMutableDictionary()
+//                    dict[NSLocalizedDescriptionKey] = "Failed to initialize the application's saved data"
+//                    dict[NSLocalizedFailureReasonErrorKey] = failureReason
+//                    dict[NSUnderlyingErrorKey] = error
+//                    error = NSError(domain: "YOUR_ERROR_DOMAIN", code: 9999, userInfo: dict as [AnyHashable: Any])
+//                    // Replace this with code to handle the error appropriately.
+//                    // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
+//                    NSLog("Unresolved error \(error), \(error!.userInfo)")
+        //            abort()
+        //        }
         
         return coordinator
-        }()
+    }()
     
     lazy var managedObjectContext: NSManagedObjectContext? = {
         // Returns the managed object context for the application (which is already bound to the persistent store coordinator for the application.) This property is optional since there are legitimate error conditions that could cause the creation of the context to fail.
@@ -192,19 +208,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         var managedObjectContext = NSManagedObjectContext()
         managedObjectContext.persistentStoreCoordinator = coordinator
         return managedObjectContext
-        }()
+    }()
     
     // MARK: - Core Data Saving support
     
     func saveContext ()
     {
         if let moc = self.managedObjectContext {
-            var error: NSError? = nil
-            if moc.hasChanges && !moc.save(&error) {
-                // Replace this implementation with code to handle the error appropriately.
-                // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                NSLog("Unresolved error \(error), \(error!.userInfo)")
-                abort()
+            if moc.hasChanges {
+                try! moc.save()
             }
         }
     }

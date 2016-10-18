@@ -28,16 +28,16 @@ class ReactionDiffusionEntity: NSManagedObject {
     @NSManaged var alpha: NSNumber
     @NSManaged var beta: NSNumber
     @NSManaged var gamma: NSNumber
-    @NSManaged var imageData: NSData
+    @NSManaged var imageData: Data
     @NSManaged var autoSaved: NSNumber
     
     var pendingDelete: Bool = false
     
-    class func createInstanceFromEntity(entity: ReactionDiffusionEntity) -> ReactionDiffusion!
+    class func createInstanceFromEntity(_ entity: ReactionDiffusionEntity) -> ReactionDiffusion!
     {
         var returnObject: ReactionDiffusion!
         
-        var model: ReactionDiffusionModels = ReactionDiffusionModels(rawValue: entity.model)!
+        let model: ReactionDiffusionModels = ReactionDiffusionModels(rawValue: entity.model)!
         
         switch model
         {
@@ -69,30 +69,30 @@ class ReactionDiffusionEntity: NSManagedObject {
         return returnObject
     }
     
-    class func createInManagedObjectContext(moc: NSManagedObjectContext, model: String, reactionDiffusionStruct: ReactionDiffusionParameters, image: UIImage, autoSaved: Bool = false) -> ReactionDiffusionEntity
+    class func createInManagedObjectContext(_ moc: NSManagedObjectContext, model: String, reactionDiffusionStruct: ReactionDiffusionParameters, image: UIImage, autoSaved: Bool = false) -> ReactionDiffusionEntity
     {
-        let newItem = NSEntityDescription.insertNewObjectForEntityForName("ReactionDiffusionEntity", inManagedObjectContext: moc) as! ReactionDiffusionEntity
+        let newItem = NSEntityDescription.insertNewObject(forEntityName: "ReactionDiffusionEntity", into: moc) as! ReactionDiffusionEntity
         
         newItem.model = model
         
-        newItem.imageData = UIImageJPEGRepresentation(image.resizeToBoundingSquare(boundingSquareSideLength: 160.0), 0.75)
+        newItem.imageData = UIImageJPEGRepresentation(image.resizeToBoundingSquare(160.0), 0.75)!
  
-        newItem.timestep = reactionDiffusionStruct.timestep
-        newItem.a0 = reactionDiffusionStruct.a0
-        newItem.a1 = reactionDiffusionStruct.a1
-        newItem.epsilon = reactionDiffusionStruct.epsilon
-        newItem.delta = reactionDiffusionStruct.delta
-        newItem.k1 = reactionDiffusionStruct.k1
-        newItem.k2 = reactionDiffusionStruct.k2
-        newItem.k3 = reactionDiffusionStruct.k3
-        newItem.f = reactionDiffusionStruct.F
-        newItem.k = reactionDiffusionStruct.K
-        newItem.du = reactionDiffusionStruct.Du
-        newItem.dv = reactionDiffusionStruct.Dv
-        newItem.alpha = reactionDiffusionStruct.alpha
-        newItem.beta = reactionDiffusionStruct.beta
-        newItem.gamma = reactionDiffusionStruct.gamma
-        newItem.autoSaved = autoSaved
+        newItem.timestep = NSNumber(value: reactionDiffusionStruct.timestep)
+        newItem.a0 = NSNumber(value: reactionDiffusionStruct.a0)
+        newItem.a1 = NSNumber(value: reactionDiffusionStruct.a1)
+        newItem.epsilon = NSNumber(value: reactionDiffusionStruct.epsilon)
+        newItem.delta = NSNumber(value: reactionDiffusionStruct.delta)
+        newItem.k1 = NSNumber(value: reactionDiffusionStruct.k1)
+        newItem.k2 = NSNumber(value: reactionDiffusionStruct.k2)
+        newItem.k3 = NSNumber(value: reactionDiffusionStruct.k3)
+        newItem.f = NSNumber(value: reactionDiffusionStruct.F)
+        newItem.k = NSNumber(value: reactionDiffusionStruct.K)
+        newItem.du = NSNumber(value: reactionDiffusionStruct.Du)
+        newItem.dv = NSNumber(value: reactionDiffusionStruct.Dv)
+        newItem.alpha = NSNumber(value: reactionDiffusionStruct.alpha)
+        newItem.beta = NSNumber(value: reactionDiffusionStruct.beta)
+        newItem.gamma = NSNumber(value: reactionDiffusionStruct.gamma)
+        newItem.autoSaved = autoSaved as NSNumber
         
         return newItem
     }

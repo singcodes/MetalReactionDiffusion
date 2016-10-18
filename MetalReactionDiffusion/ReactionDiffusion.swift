@@ -20,9 +20,9 @@ protocol ReactionDiffusion
     
     var reactionDiffusionStruct: ReactionDiffusionParameters { get set }
     
-    func getValueForFieldName(fieldName: ReactionDiffusionFieldNames) -> Float
-    func setValueForFieldName(fieldName: ReactionDiffusionFieldNames, value: Float)
-    func getMinMaxForFieldName(fieldName: ReactionDiffusionFieldNames) -> (min: Float, max: Float)
+    func getValueForFieldName(_ fieldName: ReactionDiffusionFieldNames) -> Float
+    func setValueForFieldName(_ fieldName: ReactionDiffusionFieldNames, value: Float)
+    func getMinMaxForFieldName(_ fieldName: ReactionDiffusionFieldNames) -> (min: Float, max: Float)
     
     func resetParameters()
 }
@@ -36,7 +36,7 @@ class ReactionDiffusionBase
         reactionDiffusionStruct = ReactionDiffusionParameters()
     }
     
-    func getValueForFieldName(fieldName: ReactionDiffusionFieldNames) -> Float
+    func getValueForFieldName(_ fieldName: ReactionDiffusionFieldNames) -> Float
     {
         var returnValue: Float = 0.0
         
@@ -79,7 +79,7 @@ class ReactionDiffusionBase
         return returnValue
     }
     
-    func setValueForFieldName(fieldName: ReactionDiffusionFieldNames, value: Float)
+    func setValueForFieldName(_ fieldName: ReactionDiffusionFieldNames, value: Float)
     {
         switch(fieldName)
         {
@@ -119,7 +119,7 @@ class ReactionDiffusionBase
     }
     
     
-    func getMinMaxForFieldName(fieldName: ReactionDiffusionFieldNames) -> (min: Float, max: Float)
+    func getMinMaxForFieldName(_ fieldName: ReactionDiffusionFieldNames) -> (min: Float, max: Float)
     {
         var returnValue: (min: Float, max: Float) = (min: 0.0, max: 0.0)
         

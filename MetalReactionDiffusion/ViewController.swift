@@ -17,10 +17,10 @@ import Metal
 import QuartzCore
 import CoreData
 
-class ViewController: UIViewController, UIPopoverControllerDelegate
+class ViewController: UIViewController, UIPopoverPresentationControllerDelegate
 {
-    let bitmapInfo = CGBitmapInfo(CGBitmapInfo.ByteOrder32Big.rawValue | CGImageAlphaInfo.PremultipliedLast.rawValue)
-    let renderingIntent = kCGRenderingIntentDefault
+    let bitmapInfo = CGBitmapInfo(rawValue: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue)
+    let renderingIntent: CGColorRenderingIntent = .defaultIntent
     
     let imageSide: Int = 640
     let imageSize = CGSize(width: Int(640), height: Int(640))
@@ -32,16 +32,16 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
     let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
      
     let bytesPerRow = Int(4 * 640)
-    let providerLength = Int(640 * 640 * 4) * sizeof(UInt8)
-    var imageBytes = [UInt8](count: Int(640 * 640 * 4), repeatedValue: 0)
+    let providerLength = Int(640 * 640 * 4) * MemoryLayout<UInt8>.size
+    var imageBytes = [UInt8](repeating: 0, count: Int(640 * 640 * 4))
     
     var pipelineState: MTLComputePipelineState!
     var defaultLibrary: MTLLibrary! = nil
     var device: MTLDevice! = nil
     var commandQueue: MTLCommandQueue! = nil
 
-    let imageView =  UIImageView(frame: CGRectZero)
-    let editor = ReactionDiffusionEditor(frame: CGRectZero)
+    let imageView =  UIImageView(frame: CGRect.zero)
+    let editor = ReactionDiffusionEditor(frame: CGRect.zero)
     
     var region: MTLRegion!
     var textureA: MTLTexture!
@@ -74,21 +74,18 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
     let managedObjectContext: NSManagedObjectContext
     
     let browseAndLoadController: BrowseAndLoadController
-    let popoverController: UIPopoverController
     
-    required init(coder aDecoder: NSCoder)
+    required init?(coder aDecoder: NSCoder)
     {
-        appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
+        appDelegate = UIApplication.shared.delegate as! AppDelegate
         managedObjectContext = appDelegate.managedObjectContext!
         
         browseAndLoadController = BrowseAndLoadController()
-        popoverController = UIPopoverController(contentViewController: browseAndLoadController)
         
-        super.init(coder: aDecoder)
+        super.init(coder: aDecoder)!
+//        super.init?(coder: aDecoder)
 
         browseAndLoadController.preferredContentSize = CGSize(width: 640, height: 480)
-
-        popoverController.delegate = self
     }
 
     
@@ -96,9 +93,9 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
     {
         super.viewDidLoad()
 
-        view.backgroundColor = UIColor.blackColor()
+        view.backgroundColor = UIColor.black
         
-        imageView.contentMode = UIViewContentMode.ScaleAspectFit
+        imageView.contentMode = UIViewContentMode.scaleAspectFit
         
         view.addSubview(imageView)
         view.addSubview(editor)
@@ -106,19 +103,19 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
         editor.alpha = 0
         imageView.alpha = 0
 
-        UIView.animateWithDuration(0.5, delay: 0.25, options: UIViewAnimationOptions.CurveEaseInOut, animations: {self.imageView.alpha = 1.0; self.editor.alpha = 1.0}, completion: nil)
+        UIView.animate(withDuration: 0.5, delay: 0.25, options: UIViewAnimationOptions(), animations: {self.imageView.alpha = 1.0; self.editor.alpha = 1.0}, completion: nil)
         
         editor.reactionDiffusionModel = reactionDiffusionModel
-        editor.addTarget(self, action: "editorChangeHandler:", forControlEvents: UIControlEvents.ValueChanged)
-        editor.addTarget(self, action: "resetSimulationHandler", forControlEvents: UIControlEvents.ResetSimulation)
-        editor.addTarget(self, action: "modelChangedHandler:", forControlEvents: UIControlEvents.ModelChanged)
-        editor.addTarget(self, action: "saveModel", forControlEvents: UIControlEvents.SaveModel)
-        editor.addTarget(self, action: "loadModel", forControlEvents: UIControlEvents.LoadModel)
+        editor.addTarget(self, action: #selector(ViewController.editorChangeHandler(_:)), for: UIControlEvents.valueChanged)
+        editor.addTarget(self, action: #selector(ViewController.resetSimulationHandler), for: UIControlEvents.ResetSimulation)
+        editor.addTarget(self, action: #selector(ViewController.modelChangedHandler(_:)), for: UIControlEvents.ModelChanged)
+        editor.addTarget(self, action: #selector(ViewController.saveModel), for: UIControlEvents.SaveModel)
+        editor.addTarget(self, action: #selector(ViewController.loadModel), for: UIControlEvents.LoadModel)
         
         setUpMetal()
     }
 
-    final func modelChangedHandler(value: ReactionDiffusionEditor)
+    final func modelChangedHandler(_ value: ReactionDiffusionEditor)
     {
         if value.requestedReactionDiffusionModel != nil
         {
@@ -126,7 +123,7 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
         }
     }
     
-    final func editorChangeHandler(value: ReactionDiffusionEditor)
+    final func editorChangeHandler(_ value: ReactionDiffusionEditor)
     {
         reactionDiffusionModel.reactionDiffusionStruct = value.reactionDiffusionModel.reactionDiffusionStruct
     }
@@ -145,19 +142,26 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
     
     func loadModel()
     {
-        let fetchRequest = NSFetchRequest(entityName: "ReactionDiffusionEntity")
+        let fetchRequest = NSFetchRequest<ReactionDiffusionEntity>(entityName: "ReactionDiffusionEntity")
         
-        if let fetchResults = managedObjectContext.executeFetchRequest(fetchRequest, error: nil) as? [ReactionDiffusionEntity]
+        if let fetchResults = try? managedObjectContext.fetch(fetchRequest)
         {
             // retrieved fetchResults.count records....
-            popoverController.presentPopoverFromRect(view.frame, inView: view, permittedArrowDirections: UIPopoverArrowDirection.allZeros, animated: true)
+            guard let popover = self.popoverPresentationController, let root = UIApplication.shared.keyWindow?.rootViewController else {
+                return
+            }
+            popover.delegate = self
+            popover.sourceView = view
+            popover.sourceRect = view.frame
+            popover.permittedArrowDirections = .any
+            
+            root.present(self, animated: true, completion: nil)
         
             browseAndLoadController.fetchResults = fetchResults
         }
     }
     
-    func popoverControllerDidDismissPopover(popoverController: UIPopoverController)
-    {
+    func popoverPresentationControllerDidDismissPopover(_ popoverPresentationController: UIPopoverPresentationController) {
         if let _selectedEntity = browseAndLoadController.selectedEntity
         {
             reactionDiffusionModel = ReactionDiffusionEntity.createInstanceFromEntity(_selectedEntity)
@@ -168,7 +172,7 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
     {
         device = MTLCreateSystemDefaultDevice()
         
-        println("device = \(device)")
+        print("device = \(device)")
         
         if device == nil
         {
@@ -179,10 +183,10 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
         else
         {
             defaultLibrary = device.newDefaultLibrary()
-            commandQueue = device.newCommandQueue()
+            commandQueue = device.makeCommandQueue()
             
-            let kernelFunction = defaultLibrary.newFunctionWithName(reactionDiffusionModel.shaderName)
-            pipelineState = device.newComputePipelineStateWithFunction(kernelFunction!, error: nil)
+            let kernelFunction = defaultLibrary.makeFunction(name: reactionDiffusionModel.shaderName)
+            pipelineState = try! device.makeComputePipelineState(function: kernelFunction!)//device.newComputePipelineStateWithFunction(kernelFunction!, completionHandler: nil)
             
             setUpTexture()
             run()
@@ -223,8 +227,8 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
        
                     self.editor.reactionDiffusionModel = self.reactionDiffusionModel
                     
-                    let kernelFunction = self.defaultLibrary.newFunctionWithName(self.reactionDiffusionModel.shaderName)
-                    self.pipelineState = self.device.newComputePipelineStateWithFunction(kernelFunction!, error: nil)
+                    let kernelFunction = self.defaultLibrary.makeFunction(name: self.reactionDiffusionModel.shaderName)//.newFunctionWithName(self.reactionDiffusionModel.shaderName)
+                    self.pipelineState = try! self.device.makeComputePipelineState(function: kernelFunction!)//.makeComputePipelineStateWithFunction(kernelFunction!)
                     
                     self.resetSimulationFlag = true
                 }
@@ -253,8 +257,8 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
                     self.requestedReactionDiffusionModel = nil
                     self.editor.reactionDiffusionModel = self.reactionDiffusionModel
                 
-                    let kernelFunction = self.defaultLibrary.newFunctionWithName(self.reactionDiffusionModel.shaderName)
-                    self.pipelineState = self.device.newComputePipelineStateWithFunction(kernelFunction!, error: nil)
+                    let kernelFunction = self.defaultLibrary.makeFunction(name: self.reactionDiffusionModel.shaderName)
+                    self.pipelineState = try! self.device.makeComputePipelineState(function: kernelFunction!)//newComputePipelineStateWithFunction(kernelFunction!, completionHandler: nil)
                 }
             }
    
@@ -268,51 +272,51 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
 
     func setUpTexture()
     {
-        let imageRef = reactionDiffusionModel.initalImage.CGImage!
+        let imageRef = reactionDiffusionModel.initalImage.cgImage!
 
         threadGroupCount = MTLSizeMake(16, 16, 1)
         threadGroups = MTLSizeMake(Int(imageSide) / threadGroupCount.width, Int(imageSide) / threadGroupCount.height, 1)
 
-        var rawData = [UInt8](count: Int(imageSide * imageSide * 4), repeatedValue: 0)
+        var rawData = [UInt8](repeating: 0, count: Int(imageSide * imageSide * 4))
 
-        let context = CGBitmapContextCreate(&rawData, imageSide, imageSide, bitsPerComponent, bytesPerRow, rgbColorSpace, bitmapInfo)
+        let context = CGContext(data: &rawData, width: imageSide, height: imageSide, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: rgbColorSpace, bitmapInfo: bitmapInfo.rawValue)
         
-        CGContextDrawImage(context, CGRectMake(0, 0, CGFloat(imageSide), CGFloat(imageSide)), imageRef)
+        context?.draw(imageRef, in: CGRect(x: 0, y: 0, width: CGFloat(imageSide), height: CGFloat(imageSide)))
         
-        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptorWithPixelFormat(MTLPixelFormat.RGBA8Unorm, width: Int(imageSide), height: Int(imageSide), mipmapped: false)
+        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: MTLPixelFormat.rgba8Unorm, width: Int(imageSide), height: Int(imageSide), mipmapped: false)
         
-        textureA = device.newTextureWithDescriptor(textureDescriptor)
+        textureA = device.makeTexture(descriptor: textureDescriptor)
         
-        let outTextureDescriptor = MTLTextureDescriptor.texture2DDescriptorWithPixelFormat(textureA.pixelFormat, width: textureA.width, height: textureA.height, mipmapped: false)
-        textureB = device.newTextureWithDescriptor(outTextureDescriptor)
+        let outTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: textureA.pixelFormat, width: textureA.width, height: textureA.height, mipmapped: false)
+        textureB = device.makeTexture(descriptor: outTextureDescriptor)
         
         region = MTLRegionMake2D(0, 0, Int(imageSide), Int(imageSide))
-        textureA.replaceRegion(region, mipmapLevel: 0, withBytes: &rawData, bytesPerRow: Int(bytesPerRow))
+        textureA.replace(region: region, mipmapLevel: 0, withBytes: &rawData, bytesPerRow: Int(bytesPerRow))
     }
 
     final func applyFilter() -> UIImage
     {
-        let commandBuffer = commandQueue.commandBuffer()
-        let commandEncoder = commandBuffer.computeCommandEncoder()
+        let commandBuffer = commandQueue.makeCommandBuffer()
+        let commandEncoder = commandBuffer.makeComputeCommandEncoder()
         
         commandEncoder.setComputePipelineState(pipelineState)
         
-        var buffer: MTLBuffer = device.newBufferWithBytes(&reactionDiffusionModel.reactionDiffusionStruct, length: sizeof(ReactionDiffusionParameters), options: nil)
-        commandEncoder.setBuffer(buffer, offset: 0, atIndex: 0)
+        var buffer: MTLBuffer = device.makeBuffer(bytes: &reactionDiffusionModel.reactionDiffusionStruct, length: MemoryLayout<ReactionDiffusionParameters>.size, options: [])
+        commandEncoder.setBuffer(buffer, offset: 0, at: 0)
         
-        commandQueue = device.newCommandQueue()
+        commandQueue = device.makeCommandQueue()
         
         for _ in 0 ... reactionDiffusionModel.iterationsPerFrame
         {
             if useTextureAForInput
             {
-                commandEncoder.setTexture(textureA, atIndex: 0)
-                commandEncoder.setTexture(textureB, atIndex: 1)
+                commandEncoder.setTexture(textureA, at: 0)
+                commandEncoder.setTexture(textureB, at: 1)
             }
             else
             {
-                commandEncoder.setTexture(textureB, atIndex: 0)
-                commandEncoder.setTexture(textureA, atIndex: 1)
+                commandEncoder.setTexture(textureB, at: 0)
+                commandEncoder.setTexture(textureA, at: 1)
             }
 
             commandEncoder.dispatchThreadgroups(threadGroups, threadsPerThreadgroup: threadGroupCount)
@@ -326,18 +330,18 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
   
         if !useTextureAForInput
         {
-            textureB.getBytes(&imageBytes, bytesPerRow: Int(bytesPerRow), fromRegion: region, mipmapLevel: 0)
+            textureB.getBytes(&imageBytes, bytesPerRow: Int(bytesPerRow), from: region, mipmapLevel: 0)
         }
         else
         {
-            textureA.getBytes(&imageBytes, bytesPerRow: Int(bytesPerRow), fromRegion: region, mipmapLevel: 0)
+            textureA.getBytes(&imageBytes, bytesPerRow: Int(bytesPerRow), from: region, mipmapLevel: 0)
         }
         
-        let providerRef = CGDataProviderCreateWithCFData(NSData(bytes: &imageBytes, length: providerLength))
+        let providerRef = CGDataProvider(data: Data(bytes: &imageBytes, count: providerLength) as CFData)
        
-        let imageRef = CGImageCreate(Int(imageSize.width), Int(imageSize.height), bitsPerComponent, bitsPerPixel, bytesPerRow, rgbColorSpace, bitmapInfo, providerRef, nil, false, renderingIntent)
+        let imageRef = CGImage(width: Int(imageSize.width), height: Int(imageSize.height), bitsPerComponent: bitsPerComponent, bitsPerPixel: bitsPerPixel, bytesPerRow: bytesPerRow, space: rgbColorSpace, bitmapInfo: bitmapInfo, provider: providerRef!, decode: nil, shouldInterpolate: false, intent: renderingIntent)
 
-        return UIImage(CGImage: imageRef)!
+        return UIImage(cgImage: imageRef!)
     }
 
     
@@ -345,9 +349,9 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
     {
         if errorFlag
         {
-            let alertController = UIAlertController(title: "ReDiLab v1.0\nReaction Diffusion Laboratory", message: "\nSorry! ReDiLab requires an iPad with an A7 or later processor. It appears your device is earlier.", preferredStyle: UIAlertControllerStyle.Alert)
+            let alertController = UIAlertController(title: "ReDiLab v1.0\nReaction Diffusion Laboratory", message: "\nSorry! ReDiLab requires an iPad with an A7 or later processor. It appears your device is earlier.", preferredStyle: UIAlertControllerStyle.alert)
 
-            presentViewController(alertController, animated: true, completion: nil)
+            present(alertController, animated: true, completion: nil)
             
             errorFlag = false
         }
@@ -367,9 +371,8 @@ class ViewController: UIViewController, UIPopoverControllerDelegate
         // Dispose of any resources that can be recreated.
     }
     
-    override func supportedInterfaceOrientations() -> Int
-    {
-        return Int(UIInterfaceOrientationMask.Landscape.rawValue)
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        return .landscape
     }
 }
 

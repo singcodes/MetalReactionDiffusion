@@ -8,22 +8,21 @@
 
 import UIKit
 
-class ParameterWidget: UIControl, UIPopoverControllerDelegate
+class ParameterWidget: UIControl, UIPopoverPresentationControllerDelegate
 {
-    let label = UILabel(frame: CGRectZero)
-    let slider = UISlider(frame: CGRectZero)
-
+    let label = UILabel(frame: CGRect.zero)
+    let slider = UISlider(frame: CGRect.zero)
+    
     let parameterWidgetViewController: ParameterWidgetViewController
-    let popoverController: UIPopoverController
+//    let popoverController: UIPopoverPresentationController?
     
     override init(frame: CGRect)
     {
         parameterWidgetViewController = ParameterWidgetViewController()
-        popoverController =  UIPopoverController(contentViewController: parameterWidgetViewController)
         
         super.init(frame: frame)
     }
-
+    
     required init(coder aDecoder: NSCoder)
     {
         fatalError("init(coder:) has not been implemented")
@@ -31,47 +30,54 @@ class ParameterWidget: UIControl, UIPopoverControllerDelegate
     
     override func didMoveToSuperview()
     {
-
-        label.textColor = UIColor.whiteColor()
-        layer.backgroundColor = UIColor.darkGrayColor().CGColor
+        
+        label.textColor = UIColor.white
+        layer.backgroundColor = UIColor.darkGray.cgColor
         
         layer.cornerRadius = 5
         
-        layer.shadowColor = UIColor.blackColor().CGColor
+        layer.shadowColor = UIColor.black.cgColor
         layer.shadowOffset = CGSize(width: 0, height: 0)
         layer.shadowOpacity = 0.5
         
         addSubview(label)
         addSubview(slider)
         
-        slider.addTarget(self, action: "sliderChangeHandler", forControlEvents: UIControlEvents.ValueChanged)
-        parameterWidgetViewController.slider.addTarget(self, action: "bigSliderChangeHandler", forControlEvents: UIControlEvents.ValueChanged)
-        parameterWidgetViewController.slider.addTarget(self, action: "bigSliderTouchUpInsideHandler", forControlEvents: UIControlEvents.TouchUpInside)
-
-        let longPress = UILongPressGestureRecognizer(target: self, action: "longHoldHandler:")
+        slider.addTarget(self, action: #selector(ParameterWidget.sliderChangeHandler), for: UIControlEvents.valueChanged)
+        parameterWidgetViewController.slider.addTarget(self, action: #selector(ParameterWidget.bigSliderChangeHandler), for: UIControlEvents.valueChanged)
+        parameterWidgetViewController.slider.addTarget(self, action: #selector(ParameterWidget.bigSliderTouchUpInsideHandler), for: UIControlEvents.touchUpInside)
+        
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(ParameterWidget.longHoldHandler(_:)))
         longPress.minimumPressDuration = 0.75
         longPress.allowableMovement = 7.5
         addGestureRecognizer(longPress)
     }
-
-    func longHoldHandler(recognizer: UILongPressGestureRecognizer)
+    
+    func longHoldHandler(_ recognizer: UILongPressGestureRecognizer)
     {
-        if recognizer.state == UIGestureRecognizerState.Began
+        if recognizer.state == UIGestureRecognizerState.began
         {
-            if let rootController = UIApplication.sharedApplication().keyWindow!.rootViewController
+            if let rootController = UIApplication.shared.keyWindow!.rootViewController
             {
                 var popupSource = layer.frame
                 popupSource.origin.x += superview!.frame.origin.x
                 popupSource.origin.y += superview!.frame.origin.y
-         
-                popoverController.presentPopoverFromRect(popupSource, inView: rootController.view, permittedArrowDirections: UIPopoverArrowDirection.Up, animated: true)
+                
+                guard let popover = self.parameterWidgetViewController.popoverPresentationController else {
+                    return
+                }
+                popover.sourceView = self
+                popover.sourceRect = popupSource
+                popover.delegate = self
+                
+                rootController.present(self.parameterWidgetViewController, animated: true, completion: nil)
             }
         }
     }
     
     func bigSliderTouchUpInsideHandler()
     {
-        sendActionsForControlEvents(UIControlEvents.ResetSimulation)
+        sendActions(for: UIControlEvents.ResetSimulation)
     }
     
     func bigSliderChangeHandler()
@@ -86,7 +92,7 @@ class ParameterWidget: UIControl, UIPopoverControllerDelegate
         
         popoulateLabel()
         
-        sendActionsForControlEvents(UIControlEvents.ValueChanged)
+        sendActions(for: UIControlEvents.valueChanged)
     }
     
     func popoulateLabel()
@@ -98,7 +104,7 @@ class ParameterWidget: UIControl, UIPopoverControllerDelegate
     }
     
     var reactionDiffusionFieldName: ReactionDiffusionFieldNames?
-    {
+        {
         didSet
         {
             popoulateLabel();
@@ -106,7 +112,7 @@ class ParameterWidget: UIControl, UIPopoverControllerDelegate
     }
     
     var value: Float = 0
-    {
+        {
         didSet
         {
             slider.value = value
@@ -116,7 +122,7 @@ class ParameterWidget: UIControl, UIPopoverControllerDelegate
     }
     
     var minimumValue: Float = 0
-    {
+        {
         didSet
         {
             parameterWidgetViewController.slider.minimumValue = minimumValue
@@ -125,7 +131,7 @@ class ParameterWidget: UIControl, UIPopoverControllerDelegate
     }
     
     var maximumValue: Float = 1
-    {
+        {
         didSet
         {
             parameterWidgetViewController.slider.maximumValue = maximumValue
